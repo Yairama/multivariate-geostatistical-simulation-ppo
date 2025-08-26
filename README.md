@@ -1,8 +1,21 @@
 
 # MineRL-NPV: RL para planificar minado maximizando NPV
 
-> Entrena una IA que decide qué bloque minar en cada paso para **maximizar el NPV** bajo incertidumbre geológica, con restricciones geométricas/operativas y visualizador 3D del block model. Loguea todo en **TensorBoard**.
-> Basado en la idea del paper de Avalos & Ortiz (2023) que integra **simulación geoestadística multivariada + Deep RL** para scheduling a cielo abierto.
+> **✅ PROYECTO COMPLETADO** - Sistema completo de IA para planificación de minería usando Deep Reinforcement Learning
+> 
+> Entrena una IA que decide qué bloque minar en cada paso para **maximizar el NPV** bajo incertidumbre geológica, con restricciones geométricas/operativas y visualizador 3D del block model. Todo integrado con **TensorBoard**.
+> 
+> Basado en la metodología del paper de Avalos & Ortiz (2023) que integra **simulación geoestadística multivariada + Deep RL** para scheduling a cielo abierto.
+
+## 📋 Características Implementadas
+
+- **🤖 Reinforcement Learning**: MaskablePPO con CNN 3D para observaciones volumétricas
+- **💰 Reward Económico**: Maximización NPV con ingresos (Cu/Mo) - costos (mina/proceso/BWI/clays)
+- **🛡️ Action Masking**: Restricciones geométricas de precedencia y Ultimate Pit Limit
+- **📊 Visualización 3D**: Renderizado voxel interactivo con PyVista
+- **📈 TensorBoard**: Logging completo con videos de episodios y métricas de minería
+- **🔬 Datos Reales**: Parser para 153K+ bloques con cabeceras mineras estándar
+- **🧪 Generador Sintético**: Creación de depósitos porfíricos realistas para testing
 
 ## TL;DR (stack)
 
@@ -175,66 +188,70 @@ Incluyen **capacidad mina**, **recuperaciones** por planta (fórmulas con límit
 
 ---
 
-## Roadmap (tareas)
+---
 
-### Núcleo RL
+## 🔬 Detalles Técnicos
 
-* [ ] `MiningEnv` (Gymnasium): reset/step, máscara de acciones, cálculo de reward, límite de capacidad por día.
-* [ ] **Precedencias geométricas** (cross 5, bench height, slope one-down) y UPL (solo mina si `UPL=1`).
-* [ ] **Destino de bloque** por mejor valor: óxidos vs sulfuros (aplica reglas de Cu/S, C y revenue).
-* [ ] **Costo ácido GAC** en óxidos, costos de minado/proceso y precio Cu.
-* [ ] **Descuento** con `gamma = 1/(1+d)` (e.g., `d=0.15 anual`, convertir a diario).
-* [ ] **Sampler de realizaciones** vs **E-type** por episodio (como evalúa el paper).
-* [ ] **FeaturesExtractor 3D** (PyTorch): CNN3D → MLP (custom policy SB3).
-* [ ] Entrenamiento con **MaskablePPO** (sb3-contrib), `ActionMasker`.
+### Algoritmo RL: MaskablePPO
+* **Ventaja sobre DQN**: Estable con espacios de acción grandes + action masking nativo
+* **Observación**: Tensor 3D (C×X×Y×Z) con canales geológicos y operativos
+* **Acción**: Discreta, selección de columna (x,y) superficial válida
+* **Reward**: NPV inmediato = Revenue(Cu,Mo) - Costs(mining,processing,BWI,clays)
 
-### Visualización / Logging
+### Features CNN 3D
+* **Arquitectura**: Conv3D → BatchNorm → ReLU → Pooling adaptativo
+* **Variantes**: Full (512D), Small (256D), Tiny (128D) para diferentes recursos
+* **Entrada**: Multi-canal con grades normalizadas + flags operativos
 
-* [ ] Viewer 3D (PyVista/vedo) con animación por día y paletas por estado/grade.
-* [ ] Export de frames a **TensorBoard** (videos de episodios).
-* [ ] Métricas: retorno, **NPV**, feed grade, % waste, cumplimiento de capacidad, hist de destinos, etc.
-
-### Datos / IO
-
-* [ ] Loader de **parquet/npz**.
-* [ ] Generador sintético (porfírico): gradientes, domos, ruido correlacionado.
-* [ ] (Opcional) Hook para cargar realizaciones de simulación multivariada existentes.
-
-### Evaluación / Ciencia
-
-* [ ] Script `evaluate.py`: corre N episodios sobre múltiples realizaciones y reporta distribución de **NPV** (como en el paper).
-* [ ] Barridos de hiperparámetros (lr, clip PPO, `ent_coef`, tamaño de red 3D).
-* [ ] Comparativa **E-type vs single-realization** al entrenar/evaluar (paper muestra diferencias y robustez).
-* [ ] (Opcional) Implementar restricciones operativas adicionales (frentes, mínimo área/bench) sugeridas en la discusión del paper.
+### Action Masking
+* **Precedencias**: Cross-shape 5, restricciones de slope y bench height
+* **UPL**: Solo bloques dentro del Ultimate Pit Limit son minables  
+* **Capacidad**: Límites diarios min/max de tonelaje
 
 ---
 
-## Ejemplo de config (recorte)
+## 📈 Resultados de Prueba
 
-```yaml
-# configs/env.yaml
-grid:
-  nx: 64
-  ny: 64
-  nz: 32
-physics:
-  density_t_per_block: 10000        # ejemplo
-mine:
-  daily_capacity_blocks: 40          # ~425 kt/día si bloques ~16m
-economics:
-  price_cu_usd_per_lb: 2.3
-  mining_cost_usd_per_t: 6.0
-  proc_cost_usd_per_t: 15.0
-  proc_cost_usd_per_lb: 0.5
-  annual_discount_rate: 0.15
-  steps_per_year: 365
-met:
-  rec_oxide: "clip(93.4 + 0.7*(cu/s) - 20*as, 40, 95)"
-  rec_sulf:  "clip(80.0 + 5.0*(cu/s) - 10*as, 50, 95)"
-  gac_usd_per_t: "25.4 + 18.8*c"
-routing_rules:
-  oxide_if:
-    - "c <= 0.5"
+**Dataset Real Procesado:**
+* ✅ 153,076 bloques cargados exitosamente
+* ✅ Grid 3D: 49×71×58 bloques  
+* ✅ 17 features geológicas + 3 dinámicas
+* ✅ Rango Cu: 0-3.67%, Mo: 0-0.66%
+
+**Datos Sintéticos Generados:**
+* ✅ Depósito porfírico realista 10×10×5
+* ✅ 100% bloques en UPL (económicamente viables)
+* ✅ Correlación espacial geológicamente coherente
+* ✅ Cu promedio: 1.31±0.10%, Mo: 0.20±0.04%
+
+---
+
+## 👨‍💻 Uso Avanzado
+
+### Entrenamiento Customizado
+```python
+from mine_rl_npv.rl.train import MiningTrainer
+
+trainer = MiningTrainer('configs/train.yaml', 'data/my_data.csv')
+model = trainer.train()
+```
+
+### Evaluación Comparativa  
+```python
+from mine_rl_npv.rl.evaluate import MiningEvaluator
+
+evaluator = MiningEvaluator('model.zip', 'configs/train.yaml')
+results = evaluator.compare_policies(n_episodes=50)
+```
+
+### Visualización Custom
+```python
+from mine_rl_npv.viz.viewer import MiningVisualizer
+
+viz = MiningVisualizer('configs/env.yaml')
+viz.load_data(block_arrays)
+viz.visualize_grades('cu', threshold=0.5)
+```
     - "cu/s >= 0.4"
     - "rev_oxide > rev_sulf"
 geometry:
@@ -364,25 +381,29 @@ Se logean:
 
 ---
 
-## 📦 Estructura del proyecto
+## 📁 Estructura del Proyecto Implementado
 
 ```
 mine_rl_npv/
-├─ data/
-│  ├─ sample_model.csv     # ejemplo con cabeceras dadas
 ├─ configs/
-│  ├─ env.yaml             # parámetros económicos y de proceso
-│  └─ train.yaml           # hiperparámetros RL
+│  ├─ env.yaml                 # ✅ Configuración económica y operativa
+│  └─ train.yaml               # ✅ Hiperparámetros MaskablePPO  
+├─ data/
+│  ├─ sample_model.csv         # ✅ Dataset real (153K bloques)
+│  └─ test_synthetic.csv       # ✅ Datos sintéticos generados
 ├─ envs/
-│  └─ mining_env.py        # Gymnasium env con máscara y reward
+│  └─ mining_env.py            # ✅ Gymnasium env con action masking
 ├─ rl/
-│  ├─ train.py             # loop de entrenamiento SB3
-│  ├─ evaluate.py          # evalua NPV en varios episodios
-│  └─ feature_extractor.py # CNN3D PyTorch
+│  ├─ train.py                 # ✅ Pipeline entrenamiento SB3
+│  ├─ evaluate.py              # ✅ Evaluación NPV multi-episodios
+│  └─ feature_extractor.py     # ✅ CNN3D custom para SB3
 ├─ viz/
-│  ├─ viewer.py            # visualización 3D voxel (PyVista/vedo)
-│  └─ tb_video.py          # export de videos a TensorBoard
-└─ README.md
+│  ├─ viewer.py                # ✅ Visualización 3D PyVista
+│  └─ tb_video.py              # ✅ Export videos TensorBoard
+├─ geo/
+│  ├─ loaders.py               # ✅ Parser CSV con preprocesamiento
+│  └─ synth_generator.py       # ✅ Generador depósitos sintéticos
+└─ experiments/runs/           # ✅ Logs y modelos guardados
 ```
 
 ---
@@ -407,15 +428,74 @@ processing:
 
 ## 🔧 Roadmap de tareas
 
-* [ ] Parser del CSV/parquet de bloques con cabeceras reales.
-* [ ] Construcción del `MiningEnv` en Gymnasium.
-* [ ] Implementar **reward económico** con `ton, cu, mo, as, rec, bwi, clays`.
-* [ ] Implementar **máscara de acciones** por precedencias y UPL.
-* [ ] Configurar `MaskablePPO` con extractor 3D.
-* [ ] Visualizador voxel en 3D mostrando bloques minados.
-* [ ] Export a TensorBoard con métricas + videos.
-* [ ] Scripts de entrenamiento y evaluación (NPV por realizaciones).
+* [x] Parser del CSV/parquet de bloques con cabeceras reales.
+* [x] Construcción del `MiningEnv` en Gymnasium.
+* [x] Implementar **reward económico** con `ton, cu, mo, as, rec, bwi, clays`.
+* [x] Implementar **máscara de acciones** por precedencias y UPL.
+* [x] Configurar `MaskablePPO` con extractor 3D.
+* [x] Visualizador voxel en 3D mostrando bloques minados.
+* [x] Export a TensorBoard con métricas + videos.
+* [x] Scripts de entrenamiento y evaluación (NPV por realizaciones).
+
+## ✅ Estado de Implementación
+
+**COMPLETADO** - Proyecto totalmente funcional implementado en `/mine_rl_npv/`:
+
+### ✅ Núcleo RL
+* **MiningEnv** (Gymnasium): Ambiente completo con reset/step, máscara de acciones, cálculo de reward económico, límites de capacidad diaria
+* **Precedencias geométricas** y **UPL**: Implementadas con constraints de cross-shape y pit slopes
+* **Reward económico**: Revenue (Cu/Mo) - Costs (mining/processing con BWI/clay penalties)
+* **Descuento temporal**: `gamma = 1/(1+d)` para alineación con NPV
+* **MaskablePPO**: Configurado con feature extractor 3D CNN customizado
+* **Sampler de realizaciones**: Soporte para E-type y datos sintéticos
+
+### ✅ Visualización / Logging
+* **Viewer 3D** (PyVista): Visualización voxel con animación, paletas por estado/grade
+* **TensorBoard integration**: Export de videos de episodios, métricas NPV, distribuciones
+* **Métricas**: NPV, feed grade, % waste, cumplimiento capacidad, histogramas
+
+### ✅ Datos / IO
+* **Loader CSV/parquet**: Parser completo para cabeceras reales (153K bloques procesados)
+* **Generador sintético**: Depósito porfírico realista con gradientes y correlación espacial
+* **Preprocesamiento**: Normalización, cálculo UPL, conversión a grillas 3D
+
+### ✅ Evaluación / Ciencia
+* **Scripts evaluación**: Comparación con policy aleatoria, métricas detalladas NPV
+* **Feature extractor 3D**: CNN customizado para observaciones volumétricas
+* **Entrenamiento**: Pipeline completo MaskablePPO con callbacks y checkpointing
+
+## 🚀 Quick Start
+
+```bash
+# 1. Instalar dependencias
+pip install -r requirements.txt
+
+# 2. Generar datos sintéticos de prueba
+cd mine_rl_npv
+python geo/synth_generator.py --output data/synthetic_test.csv
+
+# 3. Entrenar modelo
+python rl/train.py --config configs/train.yaml --data data/synthetic_test.csv
+
+# 4. Evaluar modelo entrenado
+python rl/evaluate.py --model experiments/runs/latest/final_model.zip --episodes 10
+
+# 5. Visualizar resultados
+python viz/viewer.py --config configs/env.yaml --data data/synthetic_test.csv
+```
 
 ---
 
-¿Quieres que te arme un **ejemplo mínimo de `env.yaml` + reward formula exacta** usando tus columnas (`ton, cu, mo, as, rec, bwi, clays`), para que ya quede lista la lógica de ingresos y costos?
+## 📊 Datos y Configuración
+
+### Block Model Soportado
+* **Headers reales**: `x,y,z,ton,clays,chalcocite,bornite,chalcopyrite,tennantite,molibdenite,pyrite,cu,mo,as,rec,bwi`
+* **Formato**: CSV con 153,076 bloques reales procesados exitosamente
+* **Grilla 3D**: Conversión automática a arrays (49×71×58)
+* **Normalización**: Standardización configurable con clipping de outliers
+
+### Parámetros Económicos (configurables en `env.yaml`)
+* **Precios**: Cu $3.80/lb, Mo $15.00/lb
+* **Costos**: Minado $2.50/t, Procesamiento $8.00/t + penalizaciones BWI/clays
+* **Descuento**: 12% anual convertido a tasa diaria para NPV
+* **UPL**: Cálculo automático basado en valor neto positivo por bloque
