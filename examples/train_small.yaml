@@ -1,0 +1,87 @@
+# Training configuration for MaskablePPO (Testing/Demo version)
+# This configuration uses smaller parameters to reduce memory requirements
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters (reduced for testing)
+  hyperparameters:
+    learning_rate: 0.001    # Higher for faster learning in short tests
+    n_steps: 128           # Reduced from 2048
+    batch_size: 32         # Reduced from 64
+    n_epochs: 4            # Reduced from 10
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration (smaller networks)
+  policy:
+    net_arch:
+      pi: [64, 64]    # Reduced from [256, 256]
+      vf: [64, 64]    # Reduced from [256, 256]
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - smaller for testing
+  feature_extractor:
+    type: "CNN3D"
+    channels: [16, 32]       # Reduced from [32, 64, 128]
+    kernel_sizes: [3, 3]     # Reduced layers
+    strides: [1, 2]          # Reduced layers
+    pooling: "adaptive"      # Pooling strategy
+    dropout: 0.1            # Dropout rate
+    output_dim: 128         # Reduced from 512
+
+# Training schedule (much shorter for testing)
+schedule:
+  total_timesteps: 1000      # Very short for testing
+  eval_freq: 200            # Reduced from 10000
+  save_freq: 500            # Reduced from 50000
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "constant"        # Use constant for short training
+    final_lr: 0.001         # Same as initial
+    
+# Environment settings for training
+env_settings:
+  n_envs: 2                 # Reduced from 4 for testing
+  max_episode_steps: 100    # Reduced from 1000
+  normalize_obs: true       # Normalize observations
+  normalize_reward: false   # Don't normalize rewards (we want actual NPV values)
+  
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 2        # Reduced for testing
+  deterministic: true
+  render: false
+  
+# Logging and monitoring
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    - "avg_cu_grade"
+    - "avg_mo_grade"
+    - "waste_percentage"
+    - "capacity_utilization"
+    
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 500           # Reduced for testing
+  save_path: "./experiments/runs/"
+  
+# Experiment tracking
+experiment:
+  name: "minerl_npv_test"   # Different name for testing
+  tags: ["mining", "rl", "npv", "maskable_ppo", "test"]
+  notes: "Test run with reduced parameters for demonstration and testing"

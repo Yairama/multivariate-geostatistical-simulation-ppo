@@ -5,7 +5,7 @@ training:
   
   # Training hyperparameters
   hyperparameters:
-    learning_rate: 3e-4
+    learning_rate: 0.0003
     n_steps: 2048
     batch_size: 64
     n_epochs: 10
@@ -43,7 +43,7 @@ schedule:
   # Learning rate schedule
   lr_schedule:
     type: "linear"  # "linear", "constant", or "exponential"
-    final_lr: 1e-5  # Final learning rate for linear schedule
+    final_lr: 0.00001  # Final learning rate for linear schedule
     
 # Environment settings for training
 env_settings:
