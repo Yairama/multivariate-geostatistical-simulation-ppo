@@ -87,8 +87,8 @@ class MiningTrainer:
         with open(config_path, 'r') as f:
             self.train_config = yaml.safe_load(f)
         
-        env_config_path = str(Path(config_path).parent / "env.yaml")
-        with open(env_config_path, 'r') as f:
+        self.env_config_path = str(Path(config_path).parent / "env.yaml")
+        with open(self.env_config_path, 'r') as f:
             self.env_config = yaml.safe_load(f)
         
         self.data_path = data_path
@@ -113,8 +113,7 @@ class MiningTrainer:
     def create_env(self, rank: int = 0):
         """Create a single environment instance."""
         def _init():
-            env_config_path = str(Path("configs/env.yaml"))
-            env = make_mining_env(env_config_path, self.data_path)
+            env = make_mining_env(self.env_config_path, self.data_path)
             
             # Add monitoring
             monitor_path = str(self.log_dir / f"monitor_{rank}.csv")
