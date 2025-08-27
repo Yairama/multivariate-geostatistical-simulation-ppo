@@ -239,9 +239,24 @@ class TensorBoardVideoLogger:
         """Convert matplotlib figure to PyTorch tensor."""
         fig.canvas.draw()
         
-        # Get image as numpy array
-        image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # Get image as numpy array (compatible with newer matplotlib)
+        try:
+            # Try new method first
+            image = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+            image = image.reshape(fig.canvas.get_width_height()[::-1] + (4,))
+            image = image[:, :, :3]  # Remove alpha channel
+        except AttributeError:
+            try:
+                # Fallback to older method
+                image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            except AttributeError:
+                # Final fallback using figure to numpy
+                import matplotlib.pyplot as plt
+                fig.canvas.draw()
+                buf = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                buf = buf.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                image = buf
         
         # Convert to tensor: (H, W, C) -> (C, H, W)
         image_tensor = torch.from_numpy(image).permute(2, 0, 1).float() / 255.0

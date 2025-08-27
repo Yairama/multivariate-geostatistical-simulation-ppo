@@ -10,7 +10,12 @@ from typing import Dict, Tuple, Optional, Any
 import yaml
 from pathlib import Path
 
-from ..geo.loaders import BlockModelLoader, create_synthetic_data
+# Fix imports for package structure
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
+from geo.loaders import BlockModelLoader, create_synthetic_data
 
 
 class MiningEnv(gym.Env):
@@ -237,12 +242,12 @@ class MiningEnv(gym.Env):
         if self.reward_config['cost']['include_processing_modifiers']:
             # BWI penalty (higher BWI = harder grinding = higher cost)
             if bwi > 15:
-                bwi_penalty = (bwi - 15) * self.economics_config['costs']['processing_modifiers']['bwi_factor']
+                bwi_penalty = (bwi - 15) * self.economics_config['processing_modifiers']['bwi_factor']
                 modifier_cost += tonnage * bwi_penalty
             
             # Clay penalty (higher clay = processing difficulties)
             if clays > 3:
-                clay_penalty = (clays - 3) * self.economics_config['costs']['processing_modifiers']['clay_penalty']
+                clay_penalty = (clays - 3) * self.economics_config['processing_modifiers']['clay_penalty']
                 modifier_cost += tonnage * clay_penalty
         
         return mining_cost + processing_cost + fixed_cost + modifier_cost

@@ -10,7 +10,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any
 
-from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback, CallbackList
+from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback, CallbackList, BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines3.common.utils import set_random_seed
@@ -21,31 +21,34 @@ from sb3_contrib.common.wrappers import ActionMasker
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-# Add parent directory to path for imports
+# Fix imports for package structure
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from envs.mining_env import make_mining_env
 from rl.feature_extractor import CNN3DFeatureExtractor, CNN3DFeatureExtractorSmall, CNN3DFeatureExtractorTiny
 
 
-class CustomMiningCallback:
+class CustomMiningCallback(BaseCallback):
     """Custom callback for logging mining-specific metrics."""
     
-    def __init__(self, log_dir: str):
+    def __init__(self, log_dir: str, verbose: int = 1):
+        super().__init__(verbose)
         self.log_dir = log_dir
         self.writer = SummaryWriter(log_dir)
         self.episode_count = 0
         
-    def on_step(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def _on_step(self) -> bool:
         """Called at each step."""
         return True
     
-    def on_rollout_end(self, locals_: Dict[str, Any], globals_: Dict[str, Any]) -> bool:
+    def _on_rollout_end(self) -> bool:
         """Called at the end of each rollout."""
         # Log custom metrics if available
-        infos = locals_.get('infos', [])
-        if infos:
+        if hasattr(self.locals, 'infos') and self.locals['infos']:
+            infos = self.locals['infos']
+            
             # Aggregate metrics across environments
             episode_npvs = []
             total_tonnages = []
@@ -62,12 +65,15 @@ class CustomMiningCallback:
                     waste_percentages.append(info.get('waste_percentage', 0))
             
             if episode_npvs:
-                step = locals_['self'].num_timesteps
+                step = self.num_timesteps
                 self.writer.add_scalar('mining/avg_episode_npv', np.mean(episode_npvs), step)
                 self.writer.add_scalar('mining/avg_tonnage_mined', np.mean(total_tonnages), step)
                 self.writer.add_scalar('mining/avg_cu_grade', np.mean(avg_cu_grades), step)
                 self.writer.add_scalar('mining/avg_mo_grade', np.mean(avg_mo_grades), step)
                 self.writer.add_scalar('mining/avg_waste_percentage', np.mean(waste_percentages), step)
+                
+                if self.verbose > 0:
+                    print(f"Step {step}: NPV={np.mean(episode_npvs):.1f}, Cu={np.mean(avg_cu_grades):.3f}%, Waste={np.mean(waste_percentages):.1f}%")
         
         return True
 

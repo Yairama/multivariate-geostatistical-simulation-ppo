@@ -11,8 +11,10 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 from pathlib import Path
 
+# Fix imports for package structure
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from geo.loaders import BlockModelLoader
 
