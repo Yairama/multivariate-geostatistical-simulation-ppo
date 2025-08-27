@@ -1,0 +1,86 @@
+# Training configuration for MaskablePPO
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters
+  hyperparameters:
+    learning_rate: 3e-4
+    n_steps: 2048
+    batch_size: 64
+    n_epochs: 10
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration
+  policy:
+    net_arch:
+      pi: [256, 256]  # Policy network architecture
+      vf: [256, 256]  # Value function network architecture
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN)
+  feature_extractor:
+    type: "CNN3D"
+    channels: [32, 64, 128]  # CNN channel progression
+    kernel_sizes: [3, 3, 3]  # Kernel sizes for each layer
+    strides: [1, 2, 2]       # Strides for each layer
+    pooling: "adaptive"      # Pooling strategy
+    dropout: 0.1            # Dropout rate
+    output_dim: 512         # Final feature dimension
+
+# Training schedule
+schedule:
+  total_timesteps: 1000000
+  eval_freq: 10000
+  save_freq: 50000
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "linear"  # "linear", "constant", or "exponential"
+    final_lr: 1e-5  # Final learning rate for linear schedule
+    
+# Environment settings for training
+env_settings:
+  n_envs: 4              # Number of parallel environments
+  max_episode_steps: 1000 # Maximum steps per episode
+  normalize_obs: true     # Normalize observations
+  normalize_reward: false # Don't normalize rewards (we want actual NPV values)
+  
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 10
+  deterministic: true
+  render: false
+  
+# Logging and monitoring
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    - "avg_cu_grade"
+    - "avg_mo_grade"
+    - "waste_percentage"
+    - "capacity_utilization"
+    
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 50000
+  save_path: "./experiments/runs/"
+  
+# Experiment tracking
+experiment:
+  name: "minerl_npv_v1"
+  tags: ["mining", "rl", "npv", "maskable_ppo"]
+  notes: "Initial training run with MaskablePPO and 3D CNN feature extractor"
