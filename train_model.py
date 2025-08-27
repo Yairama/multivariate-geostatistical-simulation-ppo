@@ -176,6 +176,32 @@ Examples:
         import numpy as np
         np.random.seed(args.seed)
     
+    # Check for environment configuration
+    env_config_path = config_path.parent / "env.yaml"
+    if not env_config_path.exists():
+        # Try to use examples/env_small.yaml as fallback
+        if Path("examples/env_small.yaml").exists():
+            print("ℹ️  env.yaml not found, using examples/env_small.yaml as fallback")
+            # Create a temporary config directory with both files
+            temp_dir = Path("/tmp/minerl_config")
+            temp_dir.mkdir(exist_ok=True)
+            
+            # Copy train config
+            temp_config_path = temp_dir / "train.yaml"
+            import shutil
+            shutil.copy2(config_path, temp_config_path)
+            
+            # Copy small env config
+            temp_env_path = temp_dir / "env.yaml"
+            shutil.copy2("examples/env_small.yaml", temp_env_path)
+            
+            config_path = temp_config_path
+        else:
+            print(f"❌ Error: env.yaml not found at {env_config_path}")
+            print("❌ Error: examples/env_small.yaml also not found")
+            print("Please ensure env.yaml exists in the same directory as the training config")
+            sys.exit(1)
+    
     # Override timesteps if provided
     if args.timesteps is not None:
         print(f"⏱️  Overriding timesteps: {args.timesteps:,}")
@@ -192,14 +218,24 @@ Examples:
         with open(temp_config_path, 'w') as f:
             yaml.dump(config, f, default_flow_style=False)
         
-        # Copy env.yaml to temp directory
-        env_config_path = config_path.parent / "env.yaml"
+        # Copy env.yaml to temp directory (check if we already copied it)
         temp_env_path = temp_dir / "env.yaml"
-        if env_config_path.exists():
-            import shutil
-            shutil.copy2(env_config_path, temp_env_path)
-        else:
-            print(f"⚠️  Warning: env.yaml not found at {env_config_path}")
+        if not temp_env_path.exists():
+            env_config_path = config_path.parent / "env.yaml"
+            
+            # Check for env.yaml in the same directory, if not found, try examples/
+            if env_config_path.exists():
+                import shutil
+                shutil.copy2(env_config_path, temp_env_path)
+            elif (Path("examples/env_small.yaml")).exists():
+                # Use the small env config for examples
+                import shutil
+                shutil.copy2("examples/env_small.yaml", temp_env_path)
+                print("ℹ️  Using examples/env_small.yaml as environment configuration")
+            else:
+                print(f"⚠️  Warning: env.yaml not found at {env_config_path}")
+                print("⚠️  Please ensure env.yaml exists in the same directory as the training config")
+                sys.exit(1)
         
         config_path = temp_config_path
     
