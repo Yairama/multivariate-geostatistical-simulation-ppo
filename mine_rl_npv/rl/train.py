@@ -21,9 +21,10 @@ from sb3_contrib.common.wrappers import ActionMasker
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-# Add parent directory to path for imports
+# Fix imports for package structure
 import sys
-sys.path.append('..')
+import os
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from envs.mining_env import make_mining_env
 from rl.feature_extractor import CNN3DFeatureExtractor, CNN3DFeatureExtractorSmall, CNN3DFeatureExtractorTiny
