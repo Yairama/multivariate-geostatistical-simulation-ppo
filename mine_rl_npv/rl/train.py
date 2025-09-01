@@ -276,7 +276,13 @@ class MiningTrainer:
         train_env = self.create_vec_env()
         
         print("Creating evaluation environment...")
-        eval_env = DummyVecEnv([self.create_env(999)])  # Single env for eval
+        # Use same env type as training to avoid warning
+        n_envs = self.train_config['env_settings']['n_envs']
+        if n_envs == 1:
+            eval_env = DummyVecEnv([self.create_env(999)])  # Single env for eval
+        else:
+            # Use same env type as training for consistency
+            eval_env = SubprocVecEnv([self.create_env(999)])  # Single env for eval
         
         # Create model
         print("Creating MaskablePPO model...")
