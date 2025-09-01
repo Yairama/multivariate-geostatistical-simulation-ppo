@@ -149,7 +149,7 @@ class MiningVisualizer:
         plotter.show_grid()
         
         # Set camera
-        plotter.camera_position = 'isometric'
+        plotter.camera_position = 'iso'
         
         if save_path:
             plotter.screenshot(save_path)
@@ -210,7 +210,7 @@ class MiningVisualizer:
         plotter.show_axes()
         plotter.show_grid()
         plotter.add_legend()
-        plotter.camera_position = 'isometric'
+        plotter.camera_position = 'iso'
         
         if save_path:
             plotter.screenshot(save_path)
@@ -283,7 +283,7 @@ class MiningVisualizer:
                 
                 plotter.add_title(f'Mining Progress - Day {day + 1}')
                 plotter.show_axes()
-                plotter.camera_position = 'isometric'
+                plotter.camera_position = 'iso'
                 
                 # Write frame
                 plotter.write_frame()
