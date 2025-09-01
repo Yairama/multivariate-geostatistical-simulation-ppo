@@ -28,24 +28,82 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from envs.mining_env import make_mining_env
 from rl.feature_extractor import CNN3DFeatureExtractor, CNN3DFeatureExtractorSmall, CNN3DFeatureExtractorTiny
+from viz.tb_video import TensorBoardVideoLogger
 
 
 class CustomMiningCallback(BaseCallback):
-    """Custom callback for logging mining-specific metrics."""
+    """Custom callback for logging mining-specific metrics and videos."""
     
-    def __init__(self, log_dir: str, verbose: int = 1):
+    def __init__(self, log_dir: str, config_path: str = None, verbose: int = 1, video_freq: int = 10000):
         super().__init__(verbose)
         self.log_dir = log_dir
         self.writer = SummaryWriter(log_dir)
         self.episode_count = 0
+        self.episode_rewards = []
+        self.episode_lengths = []
+        self.video_freq = video_freq
+        
+        # Initialize video logger if config provided
+        if config_path:
+            try:
+                self.video_logger = TensorBoardVideoLogger(log_dir, config_path)
+                self.video_enabled = True
+            except Exception as e:
+                print(f"Warning: Could not initialize video logger: {e}")
+                self.video_enabled = False
+        else:
+            self.video_enabled = False
+    
+    def _on_training_start(self) -> None:
+        """Called at the start of training."""
+        # Log training configuration
+        if hasattr(self.model, 'policy'):
+            # Count parameters
+            total_params = sum(p.numel() for p in self.model.policy.parameters())
+            self.writer.add_scalar('model/total_parameters', total_params, 0)
+            
+            # Log learning rate
+            self.writer.add_scalar('training/learning_rate', self.model.learning_rate, 0)
         
     def _on_step(self) -> bool:
-        """Called at each step."""
+        """Called at each step to log immediate metrics."""
+        # Log step-level metrics if available
+        if hasattr(self.locals, 'infos') and self.locals['infos']:
+            infos = self.locals['infos']
+            step = self.num_timesteps
+            
+            # Log immediate step metrics
+            for i, info in enumerate(infos):
+                if isinstance(info, dict):
+                    # Current state metrics
+                    if 'current_day' in info:
+                        self.writer.add_scalar(f'env_{i}/current_day', info['current_day'], step)
+                    if 'total_mined_tonnage' in info:
+                        self.writer.add_scalar(f'env_{i}/total_tonnage', info['total_mined_tonnage'], step)
+                    if 'episode_npv' in info:
+                        self.writer.add_scalar(f'env_{i}/episode_npv', info['episode_npv'], step)
+                    if 'n_valid_actions' in info:
+                        self.writer.add_scalar(f'env_{i}/valid_actions', info['n_valid_actions'], step)
+        
+        # Log rewards from the current step
+        if hasattr(self.locals, 'rewards') and self.locals['rewards'] is not None:
+            rewards = self.locals['rewards']
+            step = self.num_timesteps
+            
+            # Log reward statistics
+            self.writer.add_scalar('reward/mean', np.mean(rewards), step)
+            self.writer.add_scalar('reward/std', np.std(rewards), step)
+            self.writer.add_scalar('reward/min', np.min(rewards), step)
+            self.writer.add_scalar('reward/max', np.max(rewards), step)
+            
+            # Log reward distribution as histogram
+            self.writer.add_histogram('reward/distribution', rewards, step)
+        
         return True
     
     def _on_rollout_end(self) -> bool:
         """Called at the end of each rollout."""
-        # Log custom metrics if available
+        # Log rollout-level aggregated metrics
         if hasattr(self.locals, 'infos') and self.locals['infos']:
             infos = self.locals['infos']
             
@@ -55,6 +113,9 @@ class CustomMiningCallback(BaseCallback):
             avg_cu_grades = []
             avg_mo_grades = []
             waste_percentages = []
+            total_revenues = []
+            total_costs = []
+            current_days = []
             
             for info in infos:
                 if isinstance(info, dict):
@@ -63,19 +124,65 @@ class CustomMiningCallback(BaseCallback):
                     avg_cu_grades.append(info.get('avg_cu_grade', 0))
                     avg_mo_grades.append(info.get('avg_mo_grade', 0))
                     waste_percentages.append(info.get('waste_percentage', 0))
+                    total_revenues.append(info.get('total_revenue', 0))
+                    total_costs.append(info.get('total_costs', 0))
+                    current_days.append(info.get('current_day', 0))
             
             if episode_npvs:
                 step = self.num_timesteps
+                
+                # Economic metrics
                 self.writer.add_scalar('mining/avg_episode_npv', np.mean(episode_npvs), step)
+                self.writer.add_scalar('mining/avg_total_revenue', np.mean(total_revenues), step)
+                self.writer.add_scalar('mining/avg_total_costs', np.mean(total_costs), step)
+                
+                # Operational metrics
                 self.writer.add_scalar('mining/avg_tonnage_mined', np.mean(total_tonnages), step)
+                self.writer.add_scalar('mining/avg_days_operated', np.mean(current_days), step)
+                
+                # Grade metrics
                 self.writer.add_scalar('mining/avg_cu_grade', np.mean(avg_cu_grades), step)
                 self.writer.add_scalar('mining/avg_mo_grade', np.mean(avg_mo_grades), step)
                 self.writer.add_scalar('mining/avg_waste_percentage', np.mean(waste_percentages), step)
+                
+                # Efficiency metrics
+                if np.mean(total_tonnages) > 0:
+                    self.writer.add_scalar('mining/npv_per_tonne', np.mean(episode_npvs) / np.mean(total_tonnages), step)
+                    self.writer.add_scalar('mining/revenue_per_tonne', np.mean(total_revenues) / np.mean(total_tonnages), step)
+                    self.writer.add_scalar('mining/cost_per_tonne', np.mean(total_costs) / np.mean(total_tonnages), step)
+                
+                # Distributions as histograms
+                self.writer.add_histogram('mining/npv_distribution', np.array(episode_npvs), step)
+                self.writer.add_histogram('mining/cu_grade_distribution', np.array(avg_cu_grades), step)
+                self.writer.add_histogram('mining/tonnage_distribution', np.array(total_tonnages), step)
+                
+                # Log episodic visualizations periodically
+                if self.video_enabled and step % self.video_freq == 0:
+                    try:
+                        # Create a summary of the current episode state
+                        episode_data = {
+                            'total_npv': np.mean(episode_npvs),
+                            'total_tonnage': np.mean(total_tonnages),
+                            'avg_cu_grade': np.mean(avg_cu_grades),
+                            'avg_mo_grade': np.mean(avg_mo_grades),
+                            'waste_percentage': np.mean(waste_percentages),
+                            'steps': np.mean(current_days)
+                        }
+                        self.video_logger.log_episode_metrics(episode_data, step)
+                    except Exception as e:
+                        if self.verbose > 0:
+                            print(f"Warning: Could not log video metrics: {e}")
                 
                 if self.verbose > 0:
                     print(f"Step {step}: NPV={np.mean(episode_npvs):.1f}, Cu={np.mean(avg_cu_grades):.3f}%, Waste={np.mean(waste_percentages):.1f}%")
         
         return True
+    
+    def _on_training_end(self) -> None:
+        """Called at the end of training."""
+        if self.video_enabled:
+            self.video_logger.close()
+        self.writer.close()
 
 
 class MiningTrainer:
@@ -243,6 +350,14 @@ class MiningTrainer:
     def create_callbacks(self, eval_env):
         """Create training callbacks."""
         callbacks = []
+        
+        # Custom mining metrics callback with video logging
+        mining_callback = CustomMiningCallback(
+            log_dir=str(self.log_dir),
+            config_path=self.env_config_path,
+            verbose=self.train_config['logging']['verbose']
+        )
+        callbacks.append(mining_callback)
         
         # Evaluation callback
         eval_config = self.train_config['evaluation']

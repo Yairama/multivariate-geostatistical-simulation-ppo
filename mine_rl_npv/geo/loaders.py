@@ -117,9 +117,10 @@ class BlockModelLoader:
         tonnage = arrays['ton']
         recovery = arrays.get('rec', np.full_like(cu_grade, 85.0)) / 100.0  # Convert percentage
         
-        # Revenue per block (simplified)
-        revenue_per_ton = cu_grade * recovery * cu_price * 0.01 * 2.20462  # Convert % to decimal, add lb conversion
-        total_revenue = revenue_per_ton * tonnage
+        # Revenue per block (fixed to match environment calculation)
+        # Environment: cu_content = tonnage * (cu_grade / 100.0) * recovery; cu_revenue = cu_content * cu_price * 2204.62
+        cu_content = tonnage * (cu_grade / 100.0) * recovery  # Tonnes of recoverable Cu
+        total_revenue = cu_content * cu_price * 2204.62  # Convert tonnes to pounds
         
         # Costs per block
         total_costs = (mining_cost + processing_cost) * tonnage
