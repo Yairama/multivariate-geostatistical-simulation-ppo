@@ -1,0 +1,79 @@
+# Ultra memory-optimized training configuration for MaskablePPO
+# This configuration minimizes memory usage for CPU-only or very limited memory scenarios
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters (ultra-low memory)
+  hyperparameters:
+    learning_rate: 0.001     # Higher LR for faster convergence
+    n_steps: 128             # Very small batch (16x less than default)
+    batch_size: 16           # Very small batch size
+    n_epochs: 4              # Quick epochs
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration (very small networks)
+  policy:
+    net_arch:
+      pi: [64, 64]           # Very small networks
+      vf: [64, 64]           # Very small networks
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - ultra-light
+  feature_extractor:
+    type: "CNN3DTiny"        # Use tiny CNN variant
+    output_dim: 128          # Small output dimension
+    dropout: 0.1
+
+# Training schedule (short for testing)
+schedule:
+  total_timesteps: 50000     # Much shorter training
+  eval_freq: 2000            # Frequent evaluation
+  save_freq: 10000           # Frequent saves
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "constant"         # Constant for simplicity
+    
+# Environment settings for training (ultra-low memory)
+env_settings:
+  n_envs: 1                 # Single environment only
+  max_episode_steps: 500    # Shorter episodes
+  normalize_obs: true
+  normalize_reward: false
+  
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 3        # Minimal evaluation
+  deterministic: true
+  render: false
+  
+# Logging and monitoring
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    - "avg_cu_grade"
+    
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 10000
+  save_path: "./experiments/runs/"
+  
+# Experiment tracking
+experiment:
+  name: "minerl_npv_ultra_light"
+  tags: ["mining", "rl", "npv", "maskable_ppo", "ultra_light", "cpu"]
+  notes: "Ultra-light configuration for CPU training with minimal memory requirements"

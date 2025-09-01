@@ -221,21 +221,47 @@ Examples:
         # Copy env.yaml to temp directory (check if we already copied it)
         temp_env_path = temp_dir / "env.yaml"
         if not temp_env_path.exists():
-            env_config_path = config_path.parent / "env.yaml"
+            # Determine the appropriate env config based on the training config name
+            original_config_name = Path(config_path.name if hasattr(config_path, 'name') else config_path).stem
+            config_dir = Path(config_path).parent if not str(config_path).startswith('/tmp') else Path("mine_rl_npv/configs")
             
-            # Check for env.yaml in the same directory, if not found, try examples/
-            if env_config_path.exists():
-                import shutil
-                shutil.copy2(env_config_path, temp_env_path)
-            elif (Path("examples/env_small.yaml")).exists():
-                # Use the small env config for examples
-                import shutil
-                shutil.copy2("examples/env_small.yaml", temp_env_path)
-                print("ℹ️  Using examples/env_small.yaml as environment configuration")
+            # Try to match the environment config to the training config
+            if "memory_optimized" in original_config_name:
+                env_config_candidates = [
+                    config_dir / "env_memory_optimized.yaml",
+                    Path("mine_rl_npv/configs/env_memory_optimized.yaml")
+                ]
+            elif "ultra_light" in original_config_name:
+                env_config_candidates = [
+                    config_dir / "env_ultra_light.yaml",
+                    Path("mine_rl_npv/configs/env_ultra_light.yaml")
+                ]
+            elif "small" in original_config_name:
+                env_config_candidates = [
+                    config_dir / "env_small.yaml",
+                    Path("examples/env_small.yaml")
+                ]
             else:
-                print(f"⚠️  Warning: env.yaml not found at {env_config_path}")
+                env_config_candidates = [
+                    config_dir / "env.yaml",
+                    Path("mine_rl_npv/configs/env.yaml")
+                ]
+            
+            # Find the first existing config
+            env_config_path = None
+            for candidate in env_config_candidates:
+                if candidate.exists():
+                    env_config_path = candidate
+                    break
+            
+            if env_config_path is None:
+                print(f"⚠️  Warning: No environment config found")
                 print("⚠️  Please ensure env.yaml exists in the same directory as the training config")
                 sys.exit(1)
+            
+            import shutil
+            shutil.copy2(env_config_path, temp_env_path)
+            print(f"ℹ️  Using environment config: {env_config_path}")
         
         config_path = temp_config_path
     
