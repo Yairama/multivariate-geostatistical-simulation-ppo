@@ -41,13 +41,53 @@ python train_model.py --config mine_rl_npv/configs/train_ultra_light.yaml --data
 python train_model.py --config examples/train_small.yaml --data mine_rl_npv/data/test_synthetic.csv --timesteps 1000
 ```
 
-### 4. Evaluate Results
+### 4. Monitor Training with TensorBoard
+```bash
+# Start TensorBoard to view training metrics
+tensorboard --logdir experiments/runs
+
+# View specific run
+tensorboard --logdir experiments/runs/your_specific_run_directory
+
+# For remote servers (e.g., SSH tunneling)
+tensorboard --logdir experiments/runs --host 0.0.0.0 --port 6006
+```
+
+**TensorBoard provides comprehensive mining-specific visualizations:**
+
+#### Economic Metrics
+- **NPV Evolution**: Real-time Net Present Value during training
+- **Revenue vs Costs**: Breakdown of income and operational expenses
+- **Efficiency Ratios**: NPV per tonne, revenue per tonne, cost per tonne
+- **Economic Distributions**: Histograms of NPV and cost distributions across episodes
+
+#### Operational Metrics  
+- **Mining Progress**: Tonnage mined, operational days, extraction rates
+- **Grade Quality**: Copper and molybdenum grade distributions
+- **Waste Management**: Percentage of waste material vs ore
+- **Action Validity**: Number of valid mining actions available
+
+#### Training Performance
+- **Reward Function**: Step-by-step reward evolution and statistics
+- **Policy Learning**: Value function, policy gradient, and loss curves
+- **Environment Dynamics**: Episode lengths, termination patterns
+- **Model Performance**: Parameter counts, learning rates, KL divergence
+
+#### Visualization Features
+- **Real-time Updates**: Metrics update during training
+- **Interactive Plots**: Zoom, pan, and analyze trends
+- **Comparative Analysis**: Compare different training runs
+- **Export Capabilities**: Download plots and data for reports
+
+**Access TensorBoard at**: `http://localhost:6006` (or your configured host/port)
+
+### 5. Evaluate Results
 ```bash
 # Evaluate with visualizations
 python evaluate_model.py --model experiments/runs/*/models/best_model.zip --data mine_rl_npv/data/sample_model.csv --visualization
 
-# Monitor training with TensorBoard
-tensorboard --logdir experiments/runs
+# Compare different models
+python evaluate_model.py --model best_model.zip --data mine_rl_npv/data/sample_model.csv --episodes 100 --compare --plot
 ```
 
 ## 📋 Features Implemented
@@ -56,7 +96,12 @@ tensorboard --logdir experiments/runs
 - **💰 Economic Reward**: NPV maximization with revenue (Cu/Mo) - costs (mining/processing/BWI/clays)
 - **🛡️ Action Masking**: Geometric precedence constraints and Ultimate Pit Limit
 - **📊 3D Visualization**: Interactive voxel rendering with PyVista
-- **📈 TensorBoard**: Complete logging with episode videos and mining metrics
+- **📈 TensorBoard Integration**: Comprehensive real-time monitoring with mining-specific metrics:
+  - **Economic Analytics**: NPV evolution, revenue/cost breakdown, efficiency ratios
+  - **Operational Metrics**: Tonnage tracking, grade distributions, waste percentage
+  - **Training Diagnostics**: Reward statistics, policy learning curves, action validity
+  - **Interactive Visualizations**: Real-time plots with zoom/pan capabilities
+  - **Comparative Analysis**: Multi-run comparison and export functionality
 - **🔬 Real Data**: Parser for 153K+ blocks with standard mining headers
 - **🧪 Synthetic Generator**: Realistic porphyry deposit creation for testing
 - **🎮 Standalone Scripts**: Independent training and evaluation scripts with headless/visualization modes
@@ -257,6 +302,16 @@ This is achieved by:
 - ✅ Optimized grid size and feature selection
 - ✅ Efficient memory management
 
+### Recent Improvements
+- **🔧 Economic Calculation Fix**: Corrected UPL (Ultimate Pit Limit) calculation that was 1000x too low
+  - **Before**: 0% of blocks economically viable due to unit conversion error
+  - **After**: 64.2% viable blocks for real data, 100% for synthetic (realistic values)
+  - **Impact**: Training now works with proper economic incentives
+- **📊 Enhanced TensorBoard**: Added comprehensive mining-specific metrics beyond basic RL metrics
+  - Economic tracking (NPV, revenue, costs, efficiency)
+  - Operational monitoring (tonnage, grades, waste percentage)
+  - Training diagnostics (reward distributions, action validity)
+
 ## 🧠 Why MaskablePPO (not DQN)
 
 **Problem:** Massive discrete action space = choose a valid surface "column" (x,y) among `Nx*Ny` positions, but with **dynamic masking** (only feasible actions due to pit precedences). Observation = **3D volume** with many channels (grade means/std, UPL flags, revenue factor, dynamic states), just like the paper.
@@ -449,10 +504,29 @@ os.environ['DISPLAY'] = ''
 - Check file paths are correct
 - Ensure learning rates are numeric (not scientific notation strings)
 
-#### 5. Data loading errors
-- Verify data file exists and is accessible
-- Check data file format (CSV expected)
-- Ensure sufficient disk space
+#### 5. TensorBoard connection issues
+**Problem**: TensorBoard shows "No dashboards are active" or connection issues
+**Solutions**:
+```bash
+# Ensure logs directory exists and contains event files
+ls -la experiments/runs/*/logs/
+
+# Try different port if 6006 is occupied
+tensorboard --logdir experiments/runs --port 6007
+
+# For remote servers, set up port forwarding
+ssh -L 6006:localhost:6006 user@remote-server
+
+# Clear browser cache and restart TensorBoard
+```
+
+#### 6. Missing mining metrics in TensorBoard
+**Problem**: Only basic training metrics visible, no mining-specific charts
+**Solution**: Ensure you're using the latest training script with CustomMiningCallback
+```bash
+# Verify the callback is enabled (should see mining/* metrics)
+python train_model.py --config mine_rl_npv/configs/train_ultra_light.yaml --data mine_rl_npv/data/test_synthetic.csv --timesteps 1000
+```
 
 ### Debug Mode
 Use `--verbose 2` for detailed debugging information including full stack traces.
