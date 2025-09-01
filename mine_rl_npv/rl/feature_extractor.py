@@ -219,13 +219,14 @@ class CNN3DFeatureExtractorTiny(BaseFeaturesExtractor):
     def __init__(
         self,
         observation_space: gym.Space,
-        features_dim: int = 128
+        features_dim: int = 128,
+        dropout: float = 0.1
     ):
         super().__init__(observation_space, features_dim)
         
         n_input_channels = observation_space.shape[0]
         
-        # Minimal architecture
+        # Minimal architecture with optional dropout
         self.network = nn.Sequential(
             nn.Conv3d(n_input_channels, 8, kernel_size=5, stride=2, padding=2),
             nn.ReLU(inplace=True),
@@ -234,7 +235,8 @@ class CNN3DFeatureExtractorTiny(BaseFeaturesExtractor):
             nn.AdaptiveAvgPool3d((1, 1, 1)),
             nn.Flatten(),
             nn.Linear(16, features_dim),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout(dropout) if dropout > 0 else nn.Identity()
         )
     
     def forward(self, observations: torch.Tensor) -> torch.Tensor:

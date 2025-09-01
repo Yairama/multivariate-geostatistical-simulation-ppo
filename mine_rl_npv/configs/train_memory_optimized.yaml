@@ -1,0 +1,87 @@
+# Memory-optimized training configuration for MaskablePPO
+# This configuration is designed to reduce memory usage while maintaining training effectiveness
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters (optimized for memory)
+  hyperparameters:
+    learning_rate: 0.0003
+    n_steps: 512            # Reduced from 2048 (4x less memory)
+    batch_size: 32          # Reduced from 64 (2x less memory)
+    n_epochs: 4             # Reduced from 10 (faster iterations)
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration (smaller networks)
+  policy:
+    net_arch:
+      pi: [128, 128]         # Reduced from [256, 256]
+      vf: [128, 128]         # Reduced from [256, 256]
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - optimized for memory
+  feature_extractor:
+    type: "CNN3DSmall"       # Use smaller CNN variant
+    channels: [16, 32, 64]   # Reduced from [32, 64, 128]
+    kernel_sizes: [3, 3, 3]  # Same convolution quality
+    strides: [1, 2, 2]       # Same spatial reduction
+    pooling: "adaptive"      # Efficient pooling
+    dropout: 0.1            
+    output_dim: 256          # Reduced from 512
+
+# Training schedule
+schedule:
+  total_timesteps: 1000000
+  eval_freq: 5000           # More frequent evaluation
+  save_freq: 25000          # More frequent saves
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "linear"
+    final_lr: 0.00001
+    
+# Environment settings for training (memory optimized)
+env_settings:
+  n_envs: 2                 # Reduced from 4 (2x less memory)
+  max_episode_steps: 1000
+  normalize_obs: true
+  normalize_reward: false
+  
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 5        # Reduced for faster evaluation
+  deterministic: true
+  render: false
+  
+# Logging and monitoring
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    - "avg_cu_grade"
+    - "avg_mo_grade"
+    - "waste_percentage"
+    - "capacity_utilization"
+    
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 25000
+  save_path: "./experiments/runs/"
+  
+# Experiment tracking
+experiment:
+  name: "minerl_npv_memory_optimized"
+  tags: ["mining", "rl", "npv", "maskable_ppo", "memory_optimized"]
+  notes: "Memory-optimized training configuration to reduce GPU/RAM requirements while maintaining effectiveness"

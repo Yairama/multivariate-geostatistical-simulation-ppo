@@ -87,9 +87,29 @@ class MiningTrainer:
         with open(config_path, 'r') as f:
             self.train_config = yaml.safe_load(f)
         
-        self.env_config_path = str(Path(config_path).parent / "env.yaml")
+        # Try to find corresponding environment configuration
+        config_dir = Path(config_path).parent
+        config_name = Path(config_path).stem
+        
+        # Try specific env config first (e.g., env_memory_optimized.yaml for train_memory_optimized.yaml)
+        if "memory_optimized" in config_name:
+            env_config_path = config_dir / "env_memory_optimized.yaml"
+        elif "ultra_light" in config_name:
+            env_config_path = config_dir / "env_ultra_light.yaml"
+        elif "small" in config_name:
+            env_config_path = config_dir / "env_small.yaml"
+        else:
+            env_config_path = config_dir / "env.yaml"
+        
+        # Fall back to default env.yaml if specific config doesn't exist
+        if not env_config_path.exists():
+            env_config_path = config_dir / "env.yaml"
+        
+        self.env_config_path = str(env_config_path)
         with open(self.env_config_path, 'r') as f:
             self.env_config = yaml.safe_load(f)
+        
+        print(f"Using environment config: {self.env_config_path}")
         
         self.data_path = data_path
         self.setup_directories()
@@ -142,6 +162,29 @@ class MiningTrainer:
         # Select feature extractor type
         extractor_type = extractor_config['type']
         if extractor_type == "CNN3D":
+            feature_extractor_class = CNN3DFeatureExtractor
+            feature_extractor_kwargs = {
+                'features_dim': extractor_config['output_dim'],
+                'channels': extractor_config['channels'],
+                'kernel_sizes': extractor_config['kernel_sizes'],
+                'strides': extractor_config['strides'],
+                'dropout': extractor_config['dropout'],
+                'pooling': extractor_config['pooling']
+            }
+        elif extractor_type == "CNN3DSmall":
+            feature_extractor_class = CNN3DFeatureExtractorSmall
+            feature_extractor_kwargs = {
+                'features_dim': extractor_config['output_dim'],
+                'dropout': extractor_config['dropout']
+            }
+        elif extractor_type == "CNN3DTiny":
+            feature_extractor_class = CNN3DFeatureExtractorTiny
+            feature_extractor_kwargs = {
+                'features_dim': extractor_config['output_dim'],
+                'dropout': extractor_config.get('dropout', 0.1)
+            }
+        else:
+            # Backward compatibility: check channel configuration
             if extractor_config.get('channels') == [8, 16]:  # Small config
                 feature_extractor_class = CNN3DFeatureExtractorSmall
                 feature_extractor_kwargs = {
@@ -158,8 +201,6 @@ class MiningTrainer:
                     'dropout': extractor_config['dropout'],
                     'pooling': extractor_config['pooling']
                 }
-        else:
-            raise ValueError(f"Unknown feature extractor type: {extractor_type}")
         
         # Policy network architecture
         policy_config = self.train_config['training']['policy']
