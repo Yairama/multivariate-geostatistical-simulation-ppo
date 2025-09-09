@@ -87,8 +87,12 @@ class MiningTrainer:
         config_dir = Path(config_path).parent
         config_name = Path(config_path).stem
         
-        # Try specific env config first (e.g., env_memory_optimized.yaml for train_memory_optimized.yaml)
-        if "memory_optimized" in config_name:
+        # Try specific env config first
+        if "optimized" in config_name:
+            env_config_path = config_dir / "env_optimized.yaml"
+        elif "16gb_gpu" in config_name:
+            env_config_path = config_dir / "env_16gb_gpu.yaml"
+        elif "memory_optimized" in config_name:
             env_config_path = config_dir / "env_memory_optimized.yaml"
         elif "ultra_light" in config_name:
             env_config_path = config_dir / "env_ultra_light.yaml"

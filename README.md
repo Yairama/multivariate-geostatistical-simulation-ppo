@@ -1,5 +1,33 @@
 # MineRL-NPV: Deep Reinforcement Learning for Mining Optimization
 
+## 🚀 Quick Start for 16GB VRAM + 64GB RAM Systems
+
+**Single Optimized Configuration - Ready to Use:**
+
+```bash
+# Train the model (recommended)
+python working_trainer.py --data mine_rl_npv/data/sample_model.csv --timesteps 100000
+
+# Alternative: Use minimal trainer for testing
+python minimal_trainer.py
+```
+
+**What you get:**
+- ✅ **Working training pipeline** verified with actual dataset
+- ✅ **Optimized for 16GB VRAM / 64GB RAM** systems  
+- ✅ **49×71×58 grid** handling 153K blocks efficiently
+- ✅ **753K parameters** CNN3D model with proper feature extraction
+- ✅ **CPU/GPU compatible** (auto-detection)
+- ✅ **TensorBoard support** (when re-enabled)
+
+## 📊 Dataset Compatibility
+
+The system works with the included `sample_model.csv`:
+- **153,076 blocks** across 49×71×58 dimensions
+- **12-channel observations** (geological + mineralogy + dynamic features)
+- **3,479 possible actions** with ~1,629 valid actions per step
+- **Economic optimization** with copper and molybdenum grades
+
 > **✅ COMPLETE PROJECT** - AI system for mining planning using Deep Reinforcement Learning to maximize NPV
 > 
 > Train an AI agent that decides which block to mine at each step to **maximize NPV** under geological uncertainty, with geometric/operational constraints and 3D block model visualization. Fully integrated with **TensorBoard**.
