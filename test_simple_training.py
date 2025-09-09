@@ -101,14 +101,30 @@ def test_single_learn_step():
         
         env = DummyVecEnv([lambda: make_mining_env(config_path, data_path)])
         
-        # Create model with minimal settings and no callbacks
+        # Import custom feature extractor
+        from rl.feature_extractor import CNN3DFeatureExtractorSmall
+        import torch.nn as nn
+        
+        # Create policy kwargs with custom feature extractor
+        policy_kwargs = {
+            'features_extractor_class': CNN3DFeatureExtractorSmall,
+            'features_extractor_kwargs': {
+                'features_dim': 256,
+                'dropout': 0.1
+            },
+            'net_arch': {'pi': [128, 128], 'vf': [128, 128]},
+            'activation_fn': nn.Tanh
+        }
+        
+        # Create model with proper policy
         model = MaskablePPO(
-            "CnnPolicy",
-            env,
+            policy="MultiInputPolicy",  # Use MultiInputPolicy instead of CnnPolicy
+            env=env,
             verbose=2,
             tensorboard_log=None,  # Disable tensorboard completely
             n_steps=16,  # Very small
             batch_size=16,
+            policy_kwargs=policy_kwargs,
             device="cpu"
         )
         

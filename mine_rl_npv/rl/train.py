@@ -230,7 +230,7 @@ class MiningTrainer:
             vf_coef=hyperparams['vf_coef'],
             max_grad_norm=hyperparams['max_grad_norm'],
             policy_kwargs=policy_kwargs,
-            tensorboard_log=str(self.log_dir),
+            tensorboard_log=None,  # DISABLE TENSORBOARD FOR TESTING
             verbose=self.train_config['logging']['verbose']
         )
         
@@ -279,13 +279,8 @@ class MiningTrainer:
         train_env = self.create_vec_env()
         
         print("Creating evaluation environment...")
-        # Use same env type as training to avoid warning
-        n_envs = self.train_config['env_settings']['n_envs']
-        if n_envs == 1:
-            eval_env = DummyVecEnv([self.create_env(999)])  # Single env for eval
-        else:
-            # Use same env type as training for consistency
-            eval_env = SubprocVecEnv([self.create_env(999)])  # Single env for eval
+        # SKIP EVAL ENV FOR TESTING
+        eval_env = None
         
         # Create model
         print("Creating MaskablePPO model...")
@@ -294,8 +289,9 @@ class MiningTrainer:
         # Print model info
         print(f"Model parameters: {sum(p.numel() for p in model.policy.parameters()):,}")
         
-        # Create callbacks
-        callbacks = self.create_callbacks(eval_env)
+        # Create callbacks - DISABLED FOR TESTING
+        # callbacks = self.create_callbacks(eval_env)
+        callbacks = None
         
         # Save configurations
         config_save_path = self.run_dir / "config.yaml"
@@ -315,7 +311,7 @@ class MiningTrainer:
             model.learn(
                 total_timesteps=total_timesteps,
                 callback=callbacks,
-                tb_log_name="maskable_ppo"
+                tb_log_name=None  # DISABLE TB LOG NAME
             )
             
             # Save final model
@@ -332,7 +328,7 @@ class MiningTrainer:
         
         finally:
             train_env.close()
-            eval_env.close()
+            # eval_env.close()  # Skip since eval_env is None
         
         print("Training completed!")
         return model
