@@ -123,6 +123,9 @@ class VisualizationCallback(BaseCallback):
         except Exception as e:
             if self.verbose > 0:
                 print(f"⚠️ Warning: Could not create visualization at step {self.num_timesteps}: {e}")
+                # Print traceback for debugging
+                import traceback
+                traceback.print_exc()
     
     def _create_mining_state_plot(self, mining_env, save_dir: Path):
         """Create mining state visualization with matplotlib."""
