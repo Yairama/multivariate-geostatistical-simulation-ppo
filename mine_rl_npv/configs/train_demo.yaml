@@ -1,0 +1,82 @@
+# Demo training configuration for visualization testing
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters - VERY LIGHTWEIGHT FOR DEMO
+  hyperparameters:
+    learning_rate: 0.001
+    n_steps: 64       # Very small for quick demo
+    batch_size: 16    # Very small batch
+    n_epochs: 2       # Few epochs
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration - TINY NETWORKS
+  policy:
+    net_arch:
+      pi: [64, 32]    # Tiny policy network
+      vf: [64, 32]    # Tiny value function network
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - TINY
+  feature_extractor:
+    type: "CNN3DTiny"
+    output_dim: 64    # Very small
+    dropout: 0.1
+
+# Training schedule - VERY SHORT FOR DEMO
+schedule:
+  total_timesteps: 2000     # Very short for demo
+  eval_freq: 10000          # No evaluation for demo
+  save_freq: 10000          # No saves for demo
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "constant"
+
+# Environment settings for training - SINGLE ENV
+env_settings:
+  n_envs: 1                # Single environment
+  max_episode_steps: 100   # Very short episodes
+  normalize_obs: true
+  normalize_reward: false
+
+# Evaluation settings - DISABLED
+evaluation:
+  n_eval_episodes: 1
+  deterministic: true
+  render: false
+
+# Logging and monitoring - FULL VISUALIZATION
+logging:
+  tensorboard: false        # Disable to avoid issues
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Enable visualization during training
+  enable_visualization: true
+  visualization_freq: 200   # Very frequent for demo (every 200 steps)
+  save_screenshots: true    # Save screenshots
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+
+# Checkpointing - DISABLED FOR DEMO
+checkpointing:
+  save_best: false
+  save_freq: 100000
+  save_path: "./experiments/runs/"
+
+# Experiment tracking
+experiment:
+  name: "minerl_npv_demo"
+  tags: ["mining", "rl", "demo", "visualization"]
+  notes: "Demo training run to test visualization functionality"

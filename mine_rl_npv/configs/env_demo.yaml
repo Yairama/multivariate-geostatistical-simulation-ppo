@@ -1,0 +1,87 @@
+# Demo environment configuration - ULTRA LIGHTWEIGHT
+environment:
+  # Grid dimensions - VERY SMALL FOR DEMO
+  grid_size:
+    nx: 10   # Tiny grid
+    ny: 10   # Tiny grid  
+    nz: 5    # Tiny grid
+  
+  # Block size (meters)
+  block_size:
+    x: 20
+    y: 20
+    z: 15
+
+# Economic parameters
+economics:
+  prices:
+    cu_price_usd_per_lb: 3.8
+    mo_price_usd_per_lb: 15.0
+    
+  costs:
+    mining_cost: 2.5
+    processing_cost: 8.0
+    fixed_cost: 1.2
+    
+  processing_modifiers:
+    bwi_factor: 0.1
+    clay_penalty: 0.5
+    
+  recovery:
+    base_cu_recovery: 0.85
+    base_mo_recovery: 0.70
+    
+  discount:
+    annual_rate: 0.12
+    convert_to_daily: true
+
+# Mining constraints - VERY SMALL
+constraints:
+  daily_capacity:
+    min_tonnes: 1000      # Very small for demo
+    max_tonnes: 2000
+    
+  precedence:
+    enable_precedence: true
+    cross_shape: 5
+    bench_height: 15
+    slope_angle: 45
+    
+  upl:
+    enforce_upl: true
+    upl_field: "upl"
+
+# State representation - MINIMAL FEATURES
+state:
+  geological_features:
+    - "cu"
+    - "mo"
+    - "ton"
+    
+  mineralogy_features:
+    - "chalcopyrite"
+    
+  dynamic_features:
+    - "mined_flag"
+    - "extraction_day"
+    
+  normalization:
+    method: "standardize"
+    clip_outliers: true
+    outlier_std: 3.0
+
+# Reward function - SIMPLIFIED
+reward:
+  revenue:
+    use_tonnage_weight: true
+    include_mo_revenue: true
+    
+  cost:
+    include_processing_modifiers: false  # Disable for simplicity
+    penalize_high_clay: false
+    penalize_high_bwi: false
+    
+  shaping:
+    early_termination_penalty: -1000
+    invalid_action_penalty: -100
+    capacity_violation_penalty: -500
