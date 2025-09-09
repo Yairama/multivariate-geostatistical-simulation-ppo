@@ -1,0 +1,82 @@
+# Optimal training configuration for 16GB VRAM + 64GB RAM systems
+# Designed for the sample_model.csv dataset (49x71x58 dimensions)
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters (optimized for 16GB GPU)
+  hyperparameters:
+    learning_rate: 0.0003
+    n_steps: 256            # Reduced for large dataset dimensions
+    batch_size: 64          # Good balance for GPU
+    n_epochs: 4             
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration
+  policy:
+    net_arch:
+      pi: [256, 128]         # Optimized for larger observations
+      vf: [256, 128]         
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - optimized for actual data dimensions
+  feature_extractor:
+    type: "CNN3DSmall"       # Use efficient CNN variant
+    channels: [16, 32, 64]   
+    kernel_sizes: [3, 3, 3]  
+    strides: [2, 2, 2]       # Aggressive downsampling for large grids
+    pooling: "adaptive"      
+    dropout: 0.2            
+    output_dim: 256          
+
+# Training schedule
+schedule:
+  total_timesteps: 1000000
+  eval_freq: 10000          
+  save_freq: 50000          
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "linear"
+    final_lr: 0.00001
+    
+# Environment settings for training
+env_settings:
+  n_envs: 1                 # Single env for large dataset
+  max_episode_steps: 2000   # Longer episodes for large mine
+  normalize_obs: true
+  normalize_reward: false
+  
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 3        
+  deterministic: true
+  render: false
+  
+# Logging and monitoring
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Essential metrics only to prevent hangs
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 50000
+  save_path: "./experiments/runs/"
+  
+# Experiment tracking
+experiment:
+  name: "minerl_npv_16gb_gpu"
+  tags: ["mining", "rl", "npv", "maskable_ppo", "16gb_gpu"]
+  notes: "Optimized configuration for 16GB VRAM + 64GB RAM systems using actual dataset dimensions"
