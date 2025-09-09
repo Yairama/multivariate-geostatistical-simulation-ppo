@@ -28,7 +28,8 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from envs.mining_env import make_mining_env
 from rl.feature_extractor import CNN3DFeatureExtractor, CNN3DFeatureExtractorSmall, CNN3DFeatureExtractorTiny
-# Remove video logging import to prevent hangs
+# Import visualization callback
+from rl.visualization_callback import VisualizationCallback
 
 
 class CustomMiningCallback(BaseCallback):
@@ -240,7 +241,7 @@ class MiningTrainer:
         
         return model
     
-    def create_callbacks(self, eval_env):
+    def create_callbacks(self, eval_env, enable_visualization=False):
         """Create training callbacks."""
         callbacks = []
         
@@ -251,18 +252,31 @@ class MiningTrainer:
         )
         callbacks.append(mining_callback)
         
-        # Evaluation callback
-        eval_config = self.train_config['evaluation']
-        eval_callback = EvalCallback(
-            eval_env,
-            best_model_save_path=str(self.checkpoint_dir),
-            log_path=str(self.log_dir),
-            eval_freq=self.train_config['schedule']['eval_freq'],
-            n_eval_episodes=eval_config['n_eval_episodes'],
-            deterministic=eval_config['deterministic'],
-            render=eval_config['render']
-        )
-        callbacks.append(eval_callback)
+        # Add visualization callback if enabled
+        if enable_visualization and self.train_config['logging'].get('enable_visualization', False):
+            visualization_callback = VisualizationCallback(
+                env_config_path=self.env_config_path,
+                visualization_freq=self.train_config['logging'].get('visualization_freq', 1000),
+                save_screenshots=self.train_config['logging'].get('save_screenshots', True),
+                output_dir=str(self.run_dir / "visualizations"),
+                verbose=self.train_config['logging']['verbose']
+            )
+            callbacks.append(visualization_callback)
+            print("🎬 Visualization callback added to training!")
+        
+        # Evaluation callback (only if eval_env is provided)
+        if eval_env is not None:
+            eval_config = self.train_config['evaluation']
+            eval_callback = EvalCallback(
+                eval_env,
+                best_model_save_path=str(self.checkpoint_dir),
+                log_path=str(self.log_dir),
+                eval_freq=self.train_config['schedule']['eval_freq'],
+                n_eval_episodes=eval_config['n_eval_episodes'],
+                deterministic=eval_config['deterministic'],
+                render=eval_config['render']
+            )
+            callbacks.append(eval_callback)
         
         # Checkpoint callback
         checkpoint_callback = CheckpointCallback(
@@ -274,7 +288,7 @@ class MiningTrainer:
         
         return CallbackList(callbacks)
     
-    def train(self):
+    def train(self, enable_visualization=False):
         """Main training loop."""
         print("Starting MineRL-NPV training...")
         
@@ -293,9 +307,8 @@ class MiningTrainer:
         # Print model info
         print(f"Model parameters: {sum(p.numel() for p in model.policy.parameters()):,}")
         
-        # Create callbacks - DISABLED FOR TESTING
-        # callbacks = self.create_callbacks(eval_env)
-        callbacks = None
+        # Create callbacks with visualization support
+        callbacks = self.create_callbacks(eval_env, enable_visualization=enable_visualization)
         
         # Save configurations
         config_save_path = self.run_dir / "config.yaml"
@@ -310,6 +323,9 @@ class MiningTrainer:
         # Start training
         total_timesteps = self.train_config['schedule']['total_timesteps']
         print(f"Training for {total_timesteps:,} timesteps...")
+        
+        if enable_visualization:
+            print("🎬 Visualization enabled - screenshots will be captured during training!")
         
         try:
             model.learn(

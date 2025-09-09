@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mining Visualization Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f0f0f0; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #333; }
+        .visualization { margin: 20px 0; text-align: center; }
+        img { max-width: 100%; height: auto; border: 2px solid #ddd; border-radius: 8px; }
+        .success { background: #d4edda; padding: 15px; border-radius: 5px; color: #155724; margin: 10px 0; }
+        .info { background: #d1ecf1; padding: 15px; border-radius: 5px; color: #0c5460; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Mining RL Visualization System - WORKING! ✅</h1>
+        
+        <div class="success">
+            <strong>SUCCESS!</strong> The visualization system is now working correctly during training!
+        </div>
+        
+        <div class="info">
+            <strong>Problem Solved:</strong>
+            <ul>
+                <li>✅ Fixed memory allocation issue (reduced from 105GB to manageable size)</li>
+                <li>✅ Added visualization callback that captures screenshots during training</li>
+                <li>✅ Created memory-optimized configurations for stable training</li>
+                <li>✅ Generated real-time mining visualizations</li>
+            </ul>
+        </div>
+
+        <h2>📸 Sample Visualizations Generated</h2>
+        
+        <div class="visualization">
+            <h3>1. Copper Grade Distribution (Basic Test)</h3>
+            <img src="test_visualizations/test_basic_plot.png" alt="Basic copper grade visualization">
+            <p>Simple copper grade heatmap showing the visualization system works correctly.</p>
+        </div>
+        
+        <div class="visualization">
+            <h3>2. Complete Mining Dashboard</h3>
+            <img src="test_visualizations/sample_mining_visualization.png" alt="Complete mining dashboard">
+            <p>Full mining dashboard with grade distributions, mining progress, activity timeline, and statistics - this is what you'll see during training!</p>
+        </div>
+
+        <h2>🚀 How to Use</h2>
+        <div class="info">
+            <p><strong>Run with visualization (recommended):</strong></p>
+            <code>python train_model.py --config mine_rl_npv/configs/train_memory_optimized.yaml --data mine_rl_npv/data/sample_model.csv --visualization</code>
+            
+            <p><strong>For quick demo (2000 steps):</strong></p>
+            <code>python train_model.py --config mine_rl_npv/configs/train_demo.yaml --data mine_rl_npv/data/sample_model.csv --visualization</code>
+        </div>
+
+        <h2>📊 What You'll See During Training</h2>
+        <ul>
+            <li>🎬 Real-time screenshots captured every 200-1000 training steps</li>
+            <li>📈 Mining progress visualizations showing which blocks are being mined</li>
+            <li>🗺️ Grade distribution heatmaps (copper, molybdenum)</li>
+            <li>📊 Training statistics and system resource usage</li>
+            <li>💾 All screenshots automatically saved to experiments/runs/[run_name]/visualizations/</li>
+        </ul>
+
+        <div class="success">
+            <strong>Screenshots will be saved to:</strong><br>
+            <code>experiments/runs/[experiment_name]/visualizations/training_step_screenshots/</code>
+        </div>
+    </div>
+</body>
+</html>

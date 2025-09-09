@@ -1,0 +1,85 @@
+# Memory-optimized training configuration for MaskablePPO
+training:
+  # Algorithm settings
+  algorithm: "MaskablePPO"
+  
+  # Training hyperparameters - OPTIMIZED FOR LOW MEMORY
+  hyperparameters:
+    learning_rate: 0.0003
+    n_steps: 512      # Reduced from 2048 to save memory
+    batch_size: 32    # Reduced from 64 to save memory
+    n_epochs: 4       # Reduced from 10 to save memory
+    gamma: 0.99
+    gae_lambda: 0.95
+    clip_range: 0.2
+    clip_range_vf: null
+    ent_coef: 0.01
+    vf_coef: 0.5
+    max_grad_norm: 0.5
+    
+  # Policy network configuration - SMALLER NETWORKS
+  policy:
+    net_arch:
+      pi: [128, 64]   # Smaller policy network
+      vf: [128, 64]   # Smaller value function network
+    activation_fn: "tanh"
+    
+  # Feature extractor (3D CNN) - MUCH SMALLER
+  feature_extractor:
+    type: "CNN3DTiny"     # Use tiny version
+    output_dim: 128       # Reduced from 512 to save memory
+    dropout: 0.1
+
+# Training schedule - SHORTER FOR TESTING
+schedule:
+  total_timesteps: 50000   # Much shorter for initial testing
+  eval_freq: 5000          # More frequent evaluation
+  save_freq: 10000
+  
+  # Learning rate schedule
+  lr_schedule:
+    type: "linear"
+    final_lr: 0.00001
+
+# Environment settings for training - SINGLE ENV FOR MEMORY
+env_settings:
+  n_envs: 1                # Single environment to save memory
+  max_episode_steps: 500   # Shorter episodes
+  normalize_obs: true
+  normalize_reward: false
+
+# Evaluation settings
+evaluation:
+  n_eval_episodes: 3       # Fewer episodes to save time
+  deterministic: true
+  render: false
+
+# Logging and monitoring - ENABLE VISUALIZATION
+logging:
+  tensorboard: true
+  tensorboard_log: "./experiments/runs/"
+  verbose: 1
+  
+  # Enable visualization during training
+  enable_visualization: true
+  visualization_freq: 1000  # Show visualization every 1000 steps
+  save_screenshots: true    # Save screenshots of visualization
+  
+  # Custom metrics to log
+  custom_metrics:
+    - "episode_npv"
+    - "total_tonnage_mined"
+    - "avg_cu_grade"
+    - "avg_mo_grade"
+
+# Checkpointing
+checkpointing:
+  save_best: true
+  save_freq: 10000
+  save_path: "./experiments/runs/"
+
+# Experiment tracking
+experiment:
+  name: "minerl_npv_memory_optimized"
+  tags: ["mining", "rl", "npv", "maskable_ppo", "memory_optimized", "visualization"]
+  notes: "Memory-optimized training run with visualization support"

@@ -287,7 +287,8 @@ Examples:
         print("🎯 Starting training...")
         print("=" * 60)
         
-        model = trainer.train()
+        # Pass visualization flag to trainer
+        model = trainer.train(enable_visualization=not headless_mode)
         
         print("=" * 60)
         print("✅ Training completed successfully!")
